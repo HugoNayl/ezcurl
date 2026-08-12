@@ -27,6 +27,8 @@ jobs:
         with:
           cache-on-failure: "true"
       - name: Lint code
+        run: cargo fmt --check
+      - name: Check code
         run: cargo clippy --all-targets
       - name: Test
         run: cargo test --all-targets --all-features
