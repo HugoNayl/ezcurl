@@ -313,18 +313,10 @@ fn render_history(frame: &mut Frame, app: &App, area: Rect) {
 fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     let footer = Layout::horizontal([
         Constraint::Length(9),
-        Constraint::Length(10),
         Constraint::Min(1),
+        Constraint::Length(10),
     ])
     .split(area);
-    frame.render_widget(
-        Paragraph::new(" ezcurl ").style(
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        ),
-        footer[0],
-    );
 
     let (mode, mode_style) = match app.mode() {
         AppMode::Normal => (
@@ -342,7 +334,7 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
                 .add_modifier(Modifier::BOLD),
         ),
     };
-    frame.render_widget(Paragraph::new(mode).style(mode_style), footer[1]);
+    frame.render_widget(Paragraph::new(mode).style(mode_style), footer[0]);
 
     let controls = if app.leader_pending() {
         " leader: e historique  Esc annuler"
@@ -371,6 +363,14 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     };
     frame.render_widget(
         Paragraph::new(controls).style(Style::default().fg(Color::DarkGray)),
+        footer[1],
+    );
+    frame.render_widget(
+        Paragraph::new(" EzCurl ").style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        ),
         footer[2],
     );
 }
