@@ -2,14 +2,15 @@
 name = "ezcurl"
 version = "0.1.0"
 edition = "2024"
-license = "Apache-2.0"
 description = "ezcurl is postman in the terminal."
 repository = "https://github.com/HugoNayl/ezcurl"
+license = "Apache-2.0"
 
 [dependencies]
 crossterm = "0.29.0"
 ratatui = "0.30.2"
-reqwest = "0.13.4"
+reqwest = { version = "0.13.4", features = ["cookies", "rustls"] }
+reqwest_cookie_store = { version = "0.10.0", features = ["serde"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }

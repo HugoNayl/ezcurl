@@ -1,3 +1,8 @@
+use std::{sync::Arc, time::Duration};
+
+use reqwest::tls;
+use reqwest_cookie_store::CookieStoreRwLock;
+
 use crate::{error::EzCurlError, request::HttpRequest, response::HttpResponse};
 
 pub struct HttpClient {
@@ -7,7 +12,19 @@ pub struct HttpClient {
 impl HttpClient {
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .tls_backend_rustls()
+                .tls_version_min(tls::Version::TLS_1_2)
+                .https_only(false)
+                .cookie_provider(Arc::new(CookieStoreRwLock::default()))
+                .timeout(Duration::from_secs(120))
+                .user_agent(concat!(
+                    env!("CARGO_PKG_NAME"),
+                    "/",
+                    env!("CARGO_PKG_VERSION")
+                ))
+                .build()
+                .expect("static parameters must work"),
         }
     }
 
