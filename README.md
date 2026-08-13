@@ -5,7 +5,7 @@
 [![Rust](https://img.shields.io/badge/Rust-000000?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
-[![CI](https://github.com/HugoNayl/ezcurl/actions/workflows/rust.yaml/badge.svg)](https://github.com/HugoNayl/ezcurl/actions/workflows/rust.yaml)
+[![Rust CI](https://github.com/HugoNayl/ezcurl/actions/workflows/rust.yml/badge.svg)](https://github.com/HugoNayl/ezcurl/actions/workflows/rust.yml)
 ![Crates.io Version](https://img.shields.io/crates/v/ezcurl)
 
 **ezcurl** is a lightweight TUI for building and sending HTTP requests without leaving your terminal.
