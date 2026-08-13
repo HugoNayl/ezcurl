@@ -3,6 +3,8 @@ name = "ezcurl"
 version = "0.1.0"
 edition = "2024"
 license = "Apache-2.0"
+description = "ezcurl is postman in the terminal."
+repository = "https://github.com/HugoNayl/ezcurl"
 
 [dependencies]
 crossterm = "0.29.0"
