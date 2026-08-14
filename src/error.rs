@@ -31,7 +31,7 @@ impl fmt::Display for EzcurlError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             EzcurlError::InvalidUrl(url) => {
-                if url == "" {
+                if  url.is_empty() {
                     f.write_str("No URL provided")
                 }
                 else {
