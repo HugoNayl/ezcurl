@@ -23,10 +23,9 @@ use crossterm::event::{self, Event};
 async fn run() -> Result<(), EzCurlError> {
     let url = std::env::args().nth(1).ok_or(EzCurlError::MissingUrl)?;
 
-    let mut request = HttpRequest::new(HttpMethod::Post, url);
+    let mut request = HttpRequest::new(HttpMethod::Get, url);
     request.add_header("User-Agent", "ezcurl/0.1");
     request.add_header("Accept", "text/html");
-    request.set_body(br#"{"name":"ezcurl"}"#.to_vec());
 
     let client = HttpClient::new();
 
