@@ -31,13 +31,12 @@ impl fmt::Display for EzcurlError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             EzcurlError::InvalidUrl(url) => {
-                if  url.is_empty() {
+                if url.is_empty() {
                     f.write_str("No URL provided")
-                }
-                else {
+                } else {
                     write!(f, "Invalid URL: {url}")
                 }
-            },
+            }
             EzcurlError::InvalidHeader(header) => write!(f, "invalid header line: {header}"),
             EzcurlError::Network(error) => write!(f, "network error: {error}"),
             EzcurlError::History(error) => write!(f, "history error: {error}"),
