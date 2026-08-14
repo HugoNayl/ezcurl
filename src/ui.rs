@@ -3,11 +3,11 @@ use crate::{
     request::{HeaderPart, HeaderState, HttpMethod, RequestField},
 };
 use ratatui::{
+    Frame,
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap},
-    Frame,
 };
 
 struct RequestAreas {
