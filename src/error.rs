@@ -2,7 +2,6 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum EzCurlError {
-    MissingUrl,
     InvalidHeader(String),
     Network(reqwest::Error),
     History(crate::history::HistoryError),
@@ -30,7 +29,6 @@ impl From<crate::history::HistoryError> for EzCurlError {
 impl fmt::Display for EzCurlError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            EzCurlError::MissingUrl => f.write_str("Missing URL"),
             EzCurlError::InvalidHeader(header) => write!(f, "invalid header line: {header}"),
             EzCurlError::Network(error) => write!(f, "network error: {error}"),
             EzCurlError::History(error) => write!(f, "history error: {error}"),

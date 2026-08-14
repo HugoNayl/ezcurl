@@ -21,7 +21,7 @@ use crate::error::EzCurlError;
 use crossterm::event::{self, Event};
 
 async fn run() -> Result<(), EzCurlError> {
-    let url = std::env::args().nth(1).ok_or(EzCurlError::MissingUrl)?;
+    let url = std::env::args().nth(1).unwrap_or_default();
 
     let mut request = HttpRequest::new(HttpMethod::Get, url);
     request.add_header("User-Agent", "ezcurl/0.1");
