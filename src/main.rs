@@ -17,10 +17,10 @@ use request::{HttpMethod, HttpRequest};
 use terminal::setup_terminal;
 use ui::draw;
 
-use crate::error::EzCurlError;
+use crate::error::EzcurlError;
 use crossterm::event::{self, Event};
 
-async fn run() -> Result<(), EzCurlError> {
+async fn run() -> Result<(), EzcurlError> {
     let url = std::env::args().nth(1).unwrap_or_default();
 
     let mut request = HttpRequest::new(HttpMethod::Get, url);
