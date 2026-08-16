@@ -34,6 +34,7 @@ async fn run() -> Result<(), EzcurlError> {
 
     let mut terminal = setup_terminal()?;
 
+
     while !app.should_quit() {
         terminal.draw(|frame| draw(frame, &app))?;
         let event = event::read()?;
