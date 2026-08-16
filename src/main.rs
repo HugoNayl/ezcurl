@@ -16,6 +16,7 @@ use history::HistoryStore;
 use request::{HttpMethod, HttpRequest};
 use terminal::setup_terminal;
 use ui::draw;
+use ratatui::widgets::TableState;
 
 use crate::error::EzcurlError;
 use crossterm::event::{self, Event};
@@ -34,8 +35,12 @@ async fn run() -> Result<(), EzcurlError> {
 
     let mut terminal = setup_terminal()?;
 
+    let mut table_state = TableState::default();
+    table_state.select_first();
+    table_state.select_first_column();
+
     while !app.should_quit() {
-        terminal.draw(|frame| draw(frame, &app))?;
+        terminal.draw(|frame| draw(frame, &app, &mut table_state))?;
         let event = event::read()?;
 
         if let Event::Key(key) = event

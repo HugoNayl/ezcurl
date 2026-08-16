@@ -1,19 +1,19 @@
 use crate::{
-    app::{App, AppMode, Panel},
+    app::{self, App, AppMode, Panel},
     request::{HeaderPart, HeaderState, HttpMethod, RequestField},
 };
 use ratatui::{
-    Frame,
-    layout::{Constraint, Layout, Rect},
+    layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Row, Table, TableState, Wrap},
+    Frame,
 };
 
 struct RequestAreas {
     method: Rect,
     url: Rect,
-    headers: [Rect; 2],
+    headers: Rect,
     body: Rect,
 }
 
@@ -48,7 +48,7 @@ fn header_part_style(app: &App, part: HeaderPart) -> Style {
     }
 }
 
-pub fn draw(frame: &mut Frame, app: &App) {
+pub fn draw(frame: &mut Frame, app: &App, table_state: &mut TableState) {
     let page = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).split(frame.area());
     let (request_area, response_area) = if app.history_open() {
         let columns = Layout::horizontal([
@@ -65,7 +65,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
         (columns[0], columns[1])
     };
 
-    let request_areas = render_request(frame, app, request_area);
+    let request_areas = render_request(frame, app, request_area, table_state);
     render_response(frame, app, response_area);
     render_footer(frame, app, page[1]);
 
@@ -83,7 +83,12 @@ pub fn draw(frame: &mut Frame, app: &App) {
     }
 }
 
-fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
+fn render_request(
+    frame: &mut Frame,
+    app: &App,
+    area: Rect,
+    table_state: &mut TableState,
+) -> RequestAreas {
     let request = app.displayed_request();
     let rows = Layout::vertical([
         Constraint::Length(3),
@@ -126,51 +131,8 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
         .border_type(panel_border_type(app, Panel::Headers));
     let headers_inner = headers_block.inner(headers_area);
     frame.render_widget(headers_block, headers_area);
-    let header_columns =
-        Layout::horizontal([Constraint::Percentage(42), Constraint::Percentage(58)])
-            .split(headers_inner);
 
-    let header_keys = request
-        .header_editor()
-        .rows()
-        .iter()
-        .map(|row| {
-            let (indicator, style) = match row.state() {
-                HeaderState::Included => ("[x]", Style::default().fg(Color::Green)),
-                HeaderState::Pending => ("[ ]", Style::default().fg(Color::DarkGray)),
-                HeaderState::Invalid => ("[!]", Style::default().fg(Color::Red)),
-            };
-            Line::from(vec![
-                Span::styled(indicator, style),
-                Span::raw(format!(" {}", row.key())),
-            ])
-        })
-        .collect::<Vec<_>>();
-    let header_values = request
-        .header_editor()
-        .rows()
-        .iter()
-        .map(|row| Line::raw(row.value().to_string()))
-        .collect::<Vec<_>>();
-
-    frame.render_widget(
-        Paragraph::new(Text::from(header_keys)).block(
-            Block::default()
-                .title("KEY")
-                .borders(Borders::TOP | Borders::RIGHT)
-                .border_style(header_part_style(app, HeaderPart::Key)),
-        ),
-        header_columns[0],
-    );
-    frame.render_widget(
-        Paragraph::new(Text::from(header_values)).block(
-            Block::default()
-                .title("VALUE")
-                .borders(Borders::TOP)
-                .border_style(header_part_style(app, HeaderPart::Value)),
-        ),
-        header_columns[1],
-    );
+    render_table(frame, headers_inner, table_state);
 
     frame.render_widget(
         Paragraph::new(request.editor(RequestField::Body).text()).block(
@@ -186,9 +148,35 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
     RequestAreas {
         method: method_area,
         url: url_area,
-        headers: [header_columns[0], header_columns[1]],
+        headers: headers_area,
         body: body_area,
     }
+}
+
+fn render_table(frame: &mut Frame, area: Rect, table_state: &mut TableState) {
+    let header = Row::new(["", "KEY", "VALUE"])
+        .style(Style::new().bold())
+        .bottom_margin(1);
+
+    let rows = [
+        Row::new(["", "1 medium", "25 kcal, 6g carbs, 1g protein"]),
+        Row::new(["", "2 large", "44 kcal, 10g carbs, 2g protein"]),
+        Row::new(["", "1 medium", "33 kcal, 7g carbs, 2g protein"]),
+        Row::new(["", "1 medium", "24 kcal, 6g carbs, 1g protein"]),
+        Row::new(["", "2 cloves", "9 kcal, 2g carbs, 0.4g protein"]),
+    ];
+
+    let widths = [
+        Constraint::Percentage(10),
+        Constraint::Percentage(40),
+        Constraint::Percentage(50),
+    ];
+
+    let table = Table::new(rows, widths)
+        .header(header)
+        .highlight_symbol("> ");
+
+    frame.render_stateful_widget(table, area, table_state);
 }
 
 fn render_response(frame: &mut Frame, app: &App, area: Rect) {
@@ -238,7 +226,7 @@ fn render_response(frame: &mut Frame, app: &App, area: Rect) {
         );
         Text::from(lines)
     } else {
-        Text::from("Ctrl+S pour envoyer la requete")
+        Text::from("Ctrl+S to send request")
     };
 
     frame.render_widget(
@@ -264,7 +252,7 @@ fn render_history(frame: &mut Frame, app: &App, area: Rect) {
     }
 
     if app.history().is_empty() {
-        lines.push(Line::raw("Aucune requete dans cette session"));
+        lines.push(Line::raw("No history"));
     } else {
         let visible_rows = area
             .height
@@ -379,11 +367,13 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
         footer[1],
     );
     frame.render_widget(
-        Paragraph::new(" ezcurl ").style(
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        ),
+        Paragraph::new(" ezcurl ")
+            .alignment(Alignment::Right)
+            .style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
         footer[2],
     );
 }
@@ -446,18 +436,7 @@ fn show_cursor(frame: &mut Frame, app: &App, areas: &RequestAreas) {
 
     let position = match app.focused_panel() {
         Panel::Url => (areas.url.x + 1 + cursor_x, areas.url.y + 1 + cursor_y),
-        Panel::Headers => {
-            let headers = app.request().header_editor();
-            let area = match headers.part() {
-                HeaderPart::Key => areas.headers[0],
-                HeaderPart::Value => areas.headers[1],
-            };
-            let indicator_width = u16::from(headers.part() == HeaderPart::Key) * 4;
-            (
-                area.x + indicator_width + cursor_x,
-                area.y + 1 + headers.selected() as u16,
-            )
-        }
+        Panel::Headers => return,
         Panel::Body => (areas.body.x + 1 + cursor_x, areas.body.y + 1 + cursor_y),
         Panel::Method | Panel::Response => return,
     };
