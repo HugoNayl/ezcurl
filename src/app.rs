@@ -11,6 +11,7 @@ const HISTORY_LIMIT: usize = 50;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppMode {
+    SelectPanel,
     Normal,
     Insert,
 }
@@ -22,6 +23,18 @@ pub enum Panel {
     Headers,
     Body,
     Response,
+}
+
+impl Panel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Panel::Method => "METHOD",
+            Panel::Url => "URL",
+            Panel::Headers => "HEADERS",
+            Panel::Body => "BODY",
+            Panel::Response => "RESPONSE",
+        }
+    }
 }
 
 pub struct App {
@@ -146,6 +159,8 @@ impl App {
             Action::PreviousField => self.previous_field(),
             Action::SendRequest => self.send_request().await,
             Action::NextPanel => self.next_panel(),
+            Action::EnterPanel => self.enter_panel(),
+            Action::ExitPanel => self.exit_panel(),
             Action::ExitInsert => self.mode = AppMode::Normal,
             Action::EnterInsert | Action::Activate => self.enter_insert_mode(),
             Action::ToggleHistory => self.toggle_history(),
@@ -168,6 +183,16 @@ impl App {
                 .request_field()
                 .map(|field| self.request.editor(field)),
         }
+    }
+
+    fn enter_panel(&mut self) {
+        if self.focused_panel != Panel::Response {
+            self.mode = AppMode::Normal;
+        }
+    }
+
+    fn exit_panel(&mut self) {
+        self.mode = AppMode::SelectPanel;
     }
 
     fn enter_insert_mode(&mut self) {

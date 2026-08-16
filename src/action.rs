@@ -14,6 +14,8 @@ pub enum Action {
     NextField,
     PreviousField,
     NextPanel,
+    EnterPanel,
+    ExitPanel,
     EnterInsert,
     ExitInsert,
     ToggleHistory,

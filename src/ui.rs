@@ -1,5 +1,5 @@
 use crate::{
-    app::{self, App, AppMode, Panel},
+    app::{App, AppMode, Panel},
     request::{HeaderPart, HeaderState, HttpMethod, RequestField},
 };
 use ratatui::{
@@ -48,7 +48,7 @@ fn header_part_style(app: &App, part: HeaderPart) -> Style {
     }
 }
 
-pub fn draw(frame: &mut Frame, app: &App, table_state: &mut TableState) {
+pub fn draw(frame: &mut Frame, app: &App) {
     let page = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).split(frame.area());
     let (request_area, response_area) = if app.history_open() {
         let columns = Layout::horizontal([
@@ -65,7 +65,7 @@ pub fn draw(frame: &mut Frame, app: &App, table_state: &mut TableState) {
         (columns[0], columns[1])
     };
 
-    let request_areas = render_request(frame, app, request_area, table_state);
+    let request_areas = render_request(frame, app, request_area);
     render_response(frame, app, response_area);
     render_footer(frame, app, page[1]);
 
@@ -83,12 +83,7 @@ pub fn draw(frame: &mut Frame, app: &App, table_state: &mut TableState) {
     }
 }
 
-fn render_request(
-    frame: &mut Frame,
-    app: &App,
-    area: Rect,
-    table_state: &mut TableState,
-) -> RequestAreas {
+fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
     let request = app.displayed_request();
     let rows = Layout::vertical([
         Constraint::Length(3),
@@ -132,7 +127,7 @@ fn render_request(
     let headers_inner = headers_block.inner(headers_area);
     frame.render_widget(headers_block, headers_area);
 
-    render_table(frame, headers_inner, table_state);
+    render_table(frame, headers_inner);
 
     frame.render_widget(
         Paragraph::new(request.editor(RequestField::Body).text()).block(
@@ -153,7 +148,7 @@ fn render_request(
     }
 }
 
-fn render_table(frame: &mut Frame, area: Rect, table_state: &mut TableState) {
+fn render_table(frame: &mut Frame, area: Rect) {
     let header = Row::new(["", "KEY", "VALUE"])
         .style(Style::new().bold())
         .bottom_margin(1);
@@ -176,7 +171,7 @@ fn render_table(frame: &mut Frame, area: Rect, table_state: &mut TableState) {
         .header(header)
         .highlight_symbol("> ");
 
-    frame.render_stateful_widget(table, area, table_state);
+    frame.render_widget(table, area);
 }
 
 fn render_response(frame: &mut Frame, app: &App, area: Rect) {
@@ -320,45 +315,46 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     .split(area);
 
     let (mode, mode_style) = match app.mode() {
-        AppMode::Normal => (
-            " NORMAL ",
+        AppMode::SelectPanel => (
+            format!(" {}", app.focused_panel().as_str()),
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         ),
-        AppMode::Insert => (
-            " INSERT ",
+        AppMode::Normal => (
+            " NORMAL".to_string(),
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        AppMode::Insert => (
+            " INSERT".to_string(),
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Red)
                 .add_modifier(Modifier::BOLD),
         ),
     };
     frame.render_widget(Paragraph::new(mode).style(mode_style), footer[0]);
 
     let controls = if app.leader_pending() {
-        " leader: e historique  Esc annuler"
+        " leader: e history  Esc cancel"
     } else if app.history_open() {
-        " j/k choisir et previsualiser  Entree restaurer  Esc ou Espace+e fermer"
-    } else if app.mode() == AppMode::Normal {
+        " j/k up/down  Enter load  Esc or Espace+e close"
+    } else if app.mode() == AppMode::SelectPanel {
         if app.focused_panel() == Panel::Headers {
             " h/l key-value  j/k naviguer  i/Entree editer  [x] inclus [ ] nouveau [!] invalide"
         } else {
-            " hjkl naviguer  i/Entree editer  Tab suivant  Ctrl+S envoyer  Espace+e historique  q quitter"
+            " hjkl navigate  Enter select  Tab next  Ctrl+S send  Espace+e history  q quit"
         }
     } else {
         match app.focused_panel() {
-            Panel::Method => " j/k ou Haut/Bas choisir  Entree confirmer  Tab suivant  Esc normal",
-            Panel::Headers => {
-                " Fleches curseur/champ/ligne  Tab/Entree suivant  Shift+Tab precedent  Ctrl+S envoyer  Esc normal"
-            }
-            Panel::Body => {
-                " Fleches curseur  Entree nouvelle ligne  Home/End  Tab suivant  Ctrl+S envoyer  Esc normal"
-            }
-            Panel::Url => {
-                " Gauche/Droite curseur  Home/End  Entree confirmer  Tab suivant  Ctrl+S envoyer  Esc normal"
-            }
+            Panel::Method => " j/k up/down  Entree select  Tab next  Esc exit",
+            Panel::Headers => "",
+            Panel::Body => "vim  Esc exit",
+            Panel::Url => "vim  Esc exit",
             Panel::Response => " Esc normal",
         }
     };
