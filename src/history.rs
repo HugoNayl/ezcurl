@@ -1,5 +1,5 @@
 use std::{
-    env, fmt, fs,
+    env, fs,
     fs::OpenOptions,
     io::{BufReader, Write},
     path::{Path, PathBuf},
@@ -101,7 +101,7 @@ impl HistoryStore {
         };
         let parent = path
             .parent()
-            .ok_or_else(|| HistoryError::InvalidPath(path.to_string_lossy().into_owned()))?;
+            .ok_or_else(|| HistoryError::InvalidPath(path.to_owned()))?;
         fs::create_dir_all(parent)?;
 
         let temporary_path = temporary_path(path);
@@ -143,39 +143,18 @@ fn temporary_path(path: &Path) -> PathBuf {
     path.with_file_name(file_name)
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum HistoryError {
+    #[error("HOME and XDG_STATE_HOME are not defined")]
     MissingHome,
-    InvalidPath(String),
+    #[error("invalid history path: {0}")]
+    InvalidPath(PathBuf),
+    #[error("unsupported history version: {0}")]
     UnsupportedVersion(u8),
-    Io(std::io::Error),
-    Json(serde_json::Error),
-}
-
-impl fmt::Display for HistoryError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::MissingHome => formatter.write_str("HOME and XDG_STATE_HOME are not defined"),
-            Self::InvalidPath(path) => write!(formatter, "invalid history path: {path}"),
-            Self::UnsupportedVersion(version) => {
-                write!(formatter, "unsupported history version: {version}")
-            }
-            Self::Io(error) => write!(formatter, "history I/O error: {error}"),
-            Self::Json(error) => write!(formatter, "invalid history file: {error}"),
-        }
-    }
-}
-
-impl From<std::io::Error> for HistoryError {
-    fn from(error: std::io::Error) -> Self {
-        Self::Io(error)
-    }
-}
-
-impl From<serde_json::Error> for HistoryError {
-    fn from(error: serde_json::Error) -> Self {
-        Self::Json(error)
-    }
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
 
 #[derive(Serialize, Deserialize)]
