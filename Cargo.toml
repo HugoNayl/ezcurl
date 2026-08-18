@@ -7,6 +7,7 @@ repository = "https://github.com/HugoNayl/ezcurl"
 license = "Apache-2.0"
 
 [dependencies]
+clap = { version = "4.6.6", features = ["derive", "env", "wrap_help"] }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 ratatui = "0.30.2"

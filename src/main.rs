@@ -10,6 +10,8 @@ mod response;
 mod terminal;
 mod ui;
 
+use clap::Parser;
+
 use app::App;
 use client::HttpClient;
 use history::HistoryStore;
@@ -20,6 +22,12 @@ use ui::draw;
 use crate::error::EzcurlError;
 use crossterm::event::{self, Event};
 
+#[derive(Debug, Parser)]
+#[command(version, author, about, arg_required_else_help = true)]
+struct Cli {
+    url: String,
+}
+
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
@@ -27,7 +35,8 @@ async fn main() -> color_eyre::Result<()> {
 }
 
 async fn run() -> Result<(), EzcurlError> {
-    let url = std::env::args().nth(1).unwrap_or_default();
+    let args = Cli::parse();
+    let url = args.url;
 
     let mut request = HttpRequest::new(HttpMethod::Get, url);
     request.add_header("User-Agent", "ezcurl/0.1");
