@@ -30,9 +30,7 @@ impl HttpClient {
 
     pub async fn send(&self, http_request: &HttpRequest) -> Result<HttpResponse, EzcurlError> {
         let url = reqwest::Url::parse(http_request.url())?;
-        let mut builder = self
-            .client
-            .request(http_request.method().as_reqwest_method(), url);
+        let mut builder = self.client.request(http_request.method().into(), url);
 
         for (name, value) in http_request.header_values()? {
             builder = builder.header(name, value);

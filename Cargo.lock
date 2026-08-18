@@ -508,6 +508,7 @@ dependencies = [
  "reqwest_cookie_store",
  "serde",
  "serde_json",
+ "strum",
  "thiserror 2.0.20",
  "tokio",
  "unicode-width",
