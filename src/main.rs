@@ -20,6 +20,12 @@ use ui::draw;
 use crate::error::EzcurlError;
 use crossterm::event::{self, Event};
 
+#[tokio::main]
+async fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
+    Ok(run().await?)
+}
+
 async fn run() -> Result<(), EzcurlError> {
     let url = std::env::args().nth(1).unwrap_or_default();
 
@@ -45,14 +51,8 @@ async fn run() -> Result<(), EzcurlError> {
             app.handle_action(action).await;
         }
     }
-    let _ = terminal::exit_terminal(&mut terminal);
+
+    terminal::exit_terminal(&mut terminal)?;
 
     Ok(())
-}
-
-#[tokio::main]
-async fn main() {
-    if let Err(error) = run().await {
-        eprintln!("Error: {error}");
-    }
 }
