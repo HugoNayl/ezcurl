@@ -99,7 +99,7 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
     let body_area = rows[2];
 
     frame.render_widget(
-        Paragraph::new(request.method().as_str()).block(
+        Paragraph::new(request.method().as_ref()).block(
             Block::default()
                 .title("METHOD")
                 .borders(Borders::ALL)
@@ -292,7 +292,7 @@ fn render_history(frame: &mut Frame, app: &App, area: Rect) {
                         });
                     let line = format!(
                         "{} {} {}",
-                        entry.request().method().as_str(),
+                        entry.request().method().as_ref(),
                         outcome,
                         entry.request().url()
                     );
@@ -414,14 +414,14 @@ fn render_method_menu(frame: &mut Frame, selected: HttpMethod, anchor: Rect, bou
         .map(|method| {
             if *method == selected {
                 Line::styled(
-                    format!("> {}", method.as_str()),
+                    format!("> {}", method.as_ref()),
                     Style::default()
                         .fg(Color::Black)
                         .bg(Color::Yellow)
                         .add_modifier(Modifier::BOLD),
                 )
             } else {
-                Line::raw(format!("  {}", method.as_str()))
+                Line::raw(format!("  {}", method.as_ref()))
             }
         })
         .collect::<Vec<_>>();

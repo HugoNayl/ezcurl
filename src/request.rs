@@ -4,8 +4,9 @@ use crate::{
     error::EzcurlError,
 };
 use serde::{Deserialize, Serialize};
+use strum::{AsRefStr, IntoStaticStr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, AsRefStr, IntoStaticStr)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum HttpMethod {
     Get,
@@ -28,30 +29,6 @@ impl HttpMethod {
         Self::Options,
     ];
 
-    pub fn as_reqwest_method(self) -> reqwest::Method {
-        match self {
-            Self::Get => reqwest::Method::GET,
-            Self::Post => reqwest::Method::POST,
-            Self::Put => reqwest::Method::PUT,
-            Self::Patch => reqwest::Method::PATCH,
-            Self::Delete => reqwest::Method::DELETE,
-            Self::Head => reqwest::Method::HEAD,
-            Self::Options => reqwest::Method::OPTIONS,
-        }
-    }
-
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Get => "GET",
-            Self::Post => "POST",
-            Self::Put => "PUT",
-            Self::Patch => "PATCH",
-            Self::Delete => "DELETE",
-            Self::Head => "HEAD",
-            Self::Options => "OPTIONS",
-        }
-    }
-
     pub fn next(self) -> Self {
         let index = Self::ALL
             .iter()
@@ -66,6 +43,20 @@ impl HttpMethod {
             .position(|method| *method == self)
             .unwrap_or(0);
         Self::ALL[(index + Self::ALL.len() - 1) % Self::ALL.len()]
+    }
+}
+
+impl From<HttpMethod> for reqwest::Method {
+    fn from(method: HttpMethod) -> Self {
+        match method {
+            HttpMethod::Get => Self::GET,
+            HttpMethod::Post => Self::POST,
+            HttpMethod::Put => Self::PUT,
+            HttpMethod::Patch => Self::PATCH,
+            HttpMethod::Delete => Self::DELETE,
+            HttpMethod::Head => Self::HEAD,
+            HttpMethod::Options => Self::OPTIONS,
+        }
     }
 }
 
