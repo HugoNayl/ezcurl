@@ -23,8 +23,9 @@ use crate::error::EzcurlError;
 use crossterm::event::{self, Event};
 
 #[derive(Debug, Parser)]
-#[command(version, author, about, arg_required_else_help = true)]
+#[command(version, author, about)]
 struct Cli {
+    #[arg(default_value="")]
     url: String,
 }
 

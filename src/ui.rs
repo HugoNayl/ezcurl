@@ -127,7 +127,7 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
     let headers_inner = headers_block.inner(headers_area);
     frame.render_widget(headers_block, headers_area);
 
-    render_table(frame, headers_inner);
+    render_table(frame, headers_inner, app);
 
     frame.render_widget(
         Paragraph::new(request.editor(RequestField::Body).text()).block(
@@ -148,23 +148,25 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
     }
 }
 
-fn render_table(frame: &mut Frame, area: Rect) {
+fn render_table(frame: &mut Frame, area: Rect, app: &App) {
     let header = Row::new(["", "KEY", "VALUE"])
         .style(Style::new().bold())
         .bottom_margin(1);
 
-    let rows = [
-        Row::new(["", "1 medium", "25 kcal, 6g carbs, 1g protein"]),
-        Row::new(["", "2 large", "44 kcal, 10g carbs, 2g protein"]),
-        Row::new(["", "1 medium", "33 kcal, 7g carbs, 2g protein"]),
-        Row::new(["", "1 medium", "24 kcal, 6g carbs, 1g protein"]),
-        Row::new(["", "2 cloves", "9 kcal, 2g carbs, 0.4g protein"]),
-    ];
+    let headers = app
+    .request()
+    .header_values()
+    .expect("failed to get header values");
+    let mut rows = Vec::new();
+
+    for (key, value) in headers.iter() {
+        rows.push(Row::new(["", key.as_str(), value.as_str()]));
+    }
 
     let widths = [
-        Constraint::Percentage(10),
-        Constraint::Percentage(40),
-        Constraint::Percentage(50),
+        Constraint::Percentage(5),
+        Constraint::Percentage(20),
+        Constraint::Percentage(75),
     ];
 
     let table = Table::new(rows, widths)
