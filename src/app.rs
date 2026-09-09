@@ -69,7 +69,7 @@ impl App {
             response: None,
             response_error: None,
             client,
-            mode: AppMode::Normal,
+            mode: AppMode::SelectPanel,
             focused_panel: Panel::Url,
             response_origin: Panel::Url,
             history,

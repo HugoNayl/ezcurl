@@ -23,10 +23,10 @@ pub fn map_key(key: KeyEvent, mode: AppMode, panel: Panel, leader_pending: bool)
             KeyCode::Char('j') => Some(Action::Move(Direction::Down)),
             KeyCode::Char('k') => Some(Action::Move(Direction::Up)),
             KeyCode::Char('l') => Some(Action::Move(Direction::Right)),
-            KeyCode::Left => Some(Action::MoveCursor(Direction::Left)),
-            KeyCode::Right => Some(Action::MoveCursor(Direction::Right)),
-            KeyCode::Up => Some(Action::MoveCursor(Direction::Up)),
-            KeyCode::Down => Some(Action::MoveCursor(Direction::Down)),
+            KeyCode::Left => Some(Action::Move(Direction::Left)),
+            KeyCode::Right => Some(Action::Move(Direction::Right)),
+            KeyCode::Up => Some(Action::Move(Direction::Up)),
+            KeyCode::Down => Some(Action::Move(Direction::Down)),
             KeyCode::Char('q') => Some(Action::Quit),
             KeyCode::Char(' ') => Some(Action::Leader),
             KeyCode::Tab => Some(Action::NextPanel),
@@ -34,10 +34,10 @@ pub fn map_key(key: KeyEvent, mode: AppMode, panel: Panel, leader_pending: bool)
         },
         AppMode::Normal => match key.code {
             KeyCode::Esc => Some(Action::ExitPanel),
-            KeyCode::Char('h') => Some(Action::Move(Direction::Left)),
-            KeyCode::Char('j') => Some(Action::Move(Direction::Down)),
-            KeyCode::Char('k') => Some(Action::Move(Direction::Up)),
-            KeyCode::Char('l') => Some(Action::Move(Direction::Right)),
+            KeyCode::Char('h') => Some(Action::MoveCursor(Direction::Left)),
+            KeyCode::Char('j') => Some(Action::MoveCursor(Direction::Down)),
+            KeyCode::Char('k') => Some(Action::MoveCursor(Direction::Up)),
+            KeyCode::Char('l') => Some(Action::MoveCursor(Direction::Right)),
             KeyCode::Left => Some(Action::MoveCursor(Direction::Left)),
             KeyCode::Right => Some(Action::MoveCursor(Direction::Right)),
             KeyCode::Up => Some(Action::MoveCursor(Direction::Up)),
@@ -46,6 +46,12 @@ pub fn map_key(key: KeyEvent, mode: AppMode, panel: Panel, leader_pending: bool)
             KeyCode::Char('$') => Some(Action::MoveCursorToEnd),
             KeyCode::Char(' ') => Some(Action::Leader),
             KeyCode::Char('i') => Some(Action::EnterInsert),
+            KeyCode::Enter => {
+                if panel == Panel::Method {
+                    return Some(Action::ExitPanel)
+                }
+                None
+            },
             _ => None,
         },
         AppMode::Insert => match key.code {
@@ -60,11 +66,6 @@ pub fn map_key(key: KeyEvent, mode: AppMode, panel: Panel, leader_pending: bool)
             KeyCode::Enter => Some(Action::InsertNewline),
             KeyCode::Backspace => Some(Action::Backspace),
             KeyCode::Delete => Some(Action::Delete),
-            KeyCode::Char('j') if panel == Panel::Method => {
-                Some(Action::MoveCursor(Direction::Down))
-            }
-            KeyCode::Char('k') if panel == Panel::Method => Some(Action::MoveCursor(Direction::Up)),
-            KeyCode::Char(c) => Some(Action::InsertChar(c)),
             _ => None,
         },
     }

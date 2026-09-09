@@ -69,17 +69,19 @@ pub fn draw(frame: &mut Frame, app: &App) {
     render_response(frame, app, response_area);
     render_footer(frame, app, page[1]);
 
-    if app.mode() == AppMode::Insert {
-        show_cursor(frame, app, &request_areas);
-
-        if app.focused_panel() == Panel::Method {
-            render_method_menu(
-                frame,
-                app.request().method(),
-                request_areas.method,
-                request_area,
-            );
+    match app.mode() {
+        AppMode::Insert => show_cursor(frame, app, &request_areas),
+        AppMode::Normal => {
+            if app.focused_panel() == Panel::Method {
+                render_method_menu(
+                    frame,
+                    app.request().method(),
+                    request_areas.method,
+                    request_area,
+                );
+            }
         }
+        _ => (),
     }
 }
 
