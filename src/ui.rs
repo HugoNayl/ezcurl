@@ -6,7 +6,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Row, Table, TableState, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Row, Table, Wrap},
     Frame,
 };
 
@@ -48,7 +48,7 @@ fn header_part_style(app: &App, part: HeaderPart) -> Style {
     }
 }
 
-pub fn draw(frame: &mut Frame, app: &App) {
+pub fn draw(frame: &mut Frame, app: &mut App) {
     let page = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).split(frame.area());
     let (request_area, response_area) = if app.history_open() {
         let columns = Layout::horizontal([
@@ -85,7 +85,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
     }
 }
 
-fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
+fn render_request(frame: &mut Frame, app: &mut App, area: Rect) -> RequestAreas {
     let request = app.displayed_request();
     let rows = Layout::vertical([
         Constraint::Length(3),
@@ -129,7 +129,6 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
     let headers_inner = headers_block.inner(headers_area);
     frame.render_widget(headers_block, headers_area);
 
-    render_table(frame, headers_inner, app);
 
     frame.render_widget(
         Paragraph::new(request.editor(RequestField::Body).text()).block(
@@ -142,6 +141,8 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
         body_area,
     );
 
+    render_table(frame, headers_inner, app);
+
     RequestAreas {
         method: method_area,
         url: url_area,
@@ -150,8 +151,8 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
     }
 }
 
-fn render_table(frame: &mut Frame, area: Rect, app: &App) {
-    let header = Row::new(["", "KEY", "VALUE"])
+fn render_table(frame: &mut Frame, area: Rect, app: &mut App) {
+    let header = Row::new(["KEY", "VALUE"])
         .style(Style::new().bold())
         .bottom_margin(1);
 
@@ -162,20 +163,22 @@ fn render_table(frame: &mut Frame, area: Rect, app: &App) {
     let mut rows = Vec::new();
 
     for (key, value) in headers.iter() {
-        rows.push(Row::new(["", key.as_str(), value.as_str()]));
+        rows.push(Row::new([key.as_str(), value.as_str()]));
     }
 
     let widths = [
-        Constraint::Percentage(5),
-        Constraint::Percentage(20),
+        Constraint::Percentage(25),
         Constraint::Percentage(75),
     ];
 
     let table = Table::new(rows, widths)
         .header(header)
-        .highlight_symbol("> ");
+        .highlight_symbol("> ")
+        .row_highlight_style(Style::new().on_black().bold())
+        .column_highlight_style(Color::Gray)
+        .cell_highlight_style(Style::new().reversed().yellow());
 
-    frame.render_widget(table, area);
+    frame.render_stateful_widget(table, area, app.header_table_state_mut());
 }
 
 fn render_response(frame: &mut Frame, app: &App, area: Rect) {

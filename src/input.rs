@@ -33,15 +33,32 @@ pub fn map_key(key: KeyEvent, mode: AppMode, panel: Panel, leader_pending: bool)
             _ => None,
         },
         AppMode::Normal => match key.code {
+            KeyCode::Char('q') => Some(Action::Quit),
             KeyCode::Esc => Some(Action::ExitPanel),
-            KeyCode::Char('h') => Some(Action::MoveCursor(Direction::Left)),
-            KeyCode::Char('j') => Some(Action::MoveCursor(Direction::Down)),
-            KeyCode::Char('k') => Some(Action::MoveCursor(Direction::Up)),
-            KeyCode::Char('l') => Some(Action::MoveCursor(Direction::Right)),
-            KeyCode::Left => Some(Action::MoveCursor(Direction::Left)),
-            KeyCode::Right => Some(Action::MoveCursor(Direction::Right)),
-            KeyCode::Up => Some(Action::MoveCursor(Direction::Up)),
-            KeyCode::Down => Some(Action::MoveCursor(Direction::Down)),
+            KeyCode::Char('h') | KeyCode::Left => {
+                if panel == Panel::Headers {
+                    return Some(Action::TableHMove(Direction::Left))
+                }
+                Some(Action::MoveCursor(Direction::Left))
+            },
+            KeyCode::Char('j') | KeyCode::Down => {
+                if panel == Panel::Headers {
+                    return Some(Action::TableHMove(Direction::Down))
+                }
+                Some(Action::MoveCursor(Direction::Down))
+            },
+            KeyCode::Char('k') | KeyCode::Up => {
+                if panel == Panel::Headers {
+                    return Some(Action::TableHMove(Direction::Up))
+                }
+                Some(Action::MoveCursor(Direction::Up))
+            }
+            KeyCode::Char('l') | KeyCode::Right => {
+                if panel == Panel::Headers {
+                    return Some(Action::TableHMove(Direction::Right))
+                }
+                Some(Action::MoveCursor(Direction::Right))
+            }
             KeyCode::Char('0') => Some(Action::MoveCursorToStart),
             KeyCode::Char('$') => Some(Action::MoveCursorToEnd),
             KeyCode::Char(' ') => Some(Action::Leader),

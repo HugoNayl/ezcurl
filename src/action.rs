@@ -9,6 +9,7 @@ pub enum Direction {
 pub enum Action {
     Move(Direction),
     MoveCursor(Direction),
+    TableHMove(Direction),
     MoveCursorToStart,
     MoveCursorToEnd,
     NextField,

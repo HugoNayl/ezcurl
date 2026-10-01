@@ -42,6 +42,7 @@ async fn run() -> Result<(), EzcurlError> {
     let mut request = HttpRequest::new(HttpMethod::Get, url);
     request.add_header("User-Agent", "ezcurl/0.1");
     request.add_header("Accept", "text/html");
+    request.add_header("teeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeest", "text/htmlttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt");
 
     let client = HttpClient::new();
 
@@ -52,7 +53,7 @@ async fn run() -> Result<(), EzcurlError> {
 
 
     while !app.should_quit() {
-        terminal.draw(|frame| draw(frame, &app))?;
+        terminal.draw(|frame| draw(frame, &mut app))?;
         let event = event::read()?;
 
         if let Event::Key(key) = event
