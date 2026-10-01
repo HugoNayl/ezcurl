@@ -3,17 +3,17 @@ use crate::{
     request::{HeaderPart, HeaderState, HttpMethod, RequestField},
 };
 use ratatui::{
-    Frame,
-    layout::{Constraint, Layout, Rect},
+    layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Row, Table, Wrap},
+    Frame,
 };
 
 struct RequestAreas {
     method: Rect,
     url: Rect,
-    headers: [Rect; 2],
+    headers: Rect,
     body: Rect,
 }
 
@@ -48,7 +48,7 @@ fn header_part_style(app: &App, part: HeaderPart) -> Style {
     }
 }
 
-pub fn draw(frame: &mut Frame, app: &App) {
+pub fn draw(frame: &mut Frame, app: &mut App) {
     let page = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).split(frame.area());
     let (request_area, response_area) = if app.history_open() {
         let columns = Layout::horizontal([
@@ -69,21 +69,23 @@ pub fn draw(frame: &mut Frame, app: &App) {
     render_response(frame, app, response_area);
     render_footer(frame, app, page[1]);
 
-    if app.mode() == AppMode::Insert {
-        show_cursor(frame, app, &request_areas);
-
-        if app.focused_panel() == Panel::Method {
-            render_method_menu(
-                frame,
-                app.request().method(),
-                request_areas.method,
-                request_area,
-            );
+    match app.mode() {
+        AppMode::Insert => show_cursor(frame, app, &request_areas),
+        AppMode::Normal => {
+            if app.focused_panel() == Panel::Method {
+                render_method_menu(
+                    frame,
+                    app.request().method(),
+                    request_areas.method,
+                    request_area,
+                );
+            }
         }
+        _ => (),
     }
 }
 
-fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
+fn render_request(frame: &mut Frame, app: &mut App, area: Rect) -> RequestAreas {
     let request = app.displayed_request();
     let rows = Layout::vertical([
         Constraint::Length(3),
@@ -126,51 +128,7 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
         .border_type(panel_border_type(app, Panel::Headers));
     let headers_inner = headers_block.inner(headers_area);
     frame.render_widget(headers_block, headers_area);
-    let header_columns =
-        Layout::horizontal([Constraint::Percentage(42), Constraint::Percentage(58)])
-            .split(headers_inner);
 
-    let header_keys = request
-        .header_editor()
-        .rows()
-        .iter()
-        .map(|row| {
-            let (indicator, style) = match row.state() {
-                HeaderState::Included => ("[x]", Style::default().fg(Color::Green)),
-                HeaderState::Pending => ("[ ]", Style::default().fg(Color::DarkGray)),
-                HeaderState::Invalid => ("[!]", Style::default().fg(Color::Red)),
-            };
-            Line::from(vec![
-                Span::styled(indicator, style),
-                Span::raw(format!(" {}", row.key())),
-            ])
-        })
-        .collect::<Vec<_>>();
-    let header_values = request
-        .header_editor()
-        .rows()
-        .iter()
-        .map(|row| Line::raw(row.value().to_string()))
-        .collect::<Vec<_>>();
-
-    frame.render_widget(
-        Paragraph::new(Text::from(header_keys)).block(
-            Block::default()
-                .title("KEY")
-                .borders(Borders::TOP | Borders::RIGHT)
-                .border_style(header_part_style(app, HeaderPart::Key)),
-        ),
-        header_columns[0],
-    );
-    frame.render_widget(
-        Paragraph::new(Text::from(header_values)).block(
-            Block::default()
-                .title("VALUE")
-                .borders(Borders::TOP)
-                .border_style(header_part_style(app, HeaderPart::Value)),
-        ),
-        header_columns[1],
-    );
 
     frame.render_widget(
         Paragraph::new(request.editor(RequestField::Body).text()).block(
@@ -183,12 +141,44 @@ fn render_request(frame: &mut Frame, app: &App, area: Rect) -> RequestAreas {
         body_area,
     );
 
+    render_table(frame, headers_inner, app);
+
     RequestAreas {
         method: method_area,
         url: url_area,
-        headers: [header_columns[0], header_columns[1]],
+        headers: headers_area,
         body: body_area,
     }
+}
+
+fn render_table(frame: &mut Frame, area: Rect, app: &mut App) {
+    let header = Row::new(["KEY", "VALUE"])
+        .style(Style::new().bold())
+        .bottom_margin(1);
+
+    let headers = app
+    .request()
+    .header_values()
+    .expect("failed to get header values");
+    let mut rows = Vec::new();
+
+    for (key, value) in headers.iter() {
+        rows.push(Row::new([key.as_str(), value.as_str()]));
+    }
+
+    let widths = [
+        Constraint::Percentage(25),
+        Constraint::Percentage(75),
+    ];
+
+    let table = Table::new(rows, widths)
+        .header(header)
+        .highlight_symbol("> ")
+        .row_highlight_style(Style::new().on_black().bold())
+        .column_highlight_style(Color::Gray)
+        .cell_highlight_style(Style::new().reversed().yellow());
+
+    frame.render_stateful_widget(table, area, app.header_table_state_mut());
 }
 
 fn render_response(frame: &mut Frame, app: &App, area: Rect) {
@@ -238,7 +228,7 @@ fn render_response(frame: &mut Frame, app: &App, area: Rect) {
         );
         Text::from(lines)
     } else {
-        Text::from("Ctrl+S pour envoyer la requete")
+        Text::from("Ctrl+S to send request")
     };
 
     frame.render_widget(
@@ -264,7 +254,7 @@ fn render_history(frame: &mut Frame, app: &App, area: Rect) {
     }
 
     if app.history().is_empty() {
-        lines.push(Line::raw("Aucune requete dans cette session"));
+        lines.push(Line::raw("No history"));
     } else {
         let visible_rows = area
             .height
@@ -332,45 +322,46 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
     .split(area);
 
     let (mode, mode_style) = match app.mode() {
-        AppMode::Normal => (
-            " NORMAL ",
+        AppMode::SelectPanel => (
+            format!(" {}", app.focused_panel().as_str()),
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         ),
-        AppMode::Insert => (
-            " INSERT ",
+        AppMode::Normal => (
+            " NORMAL".to_string(),
             Style::default()
                 .fg(Color::Black)
                 .bg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
+        AppMode::Insert => (
+            " INSERT".to_string(),
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Red)
                 .add_modifier(Modifier::BOLD),
         ),
     };
     frame.render_widget(Paragraph::new(mode).style(mode_style), footer[0]);
 
     let controls = if app.leader_pending() {
-        " leader: e historique  Esc annuler"
+        " leader: e history  Esc cancel"
     } else if app.history_open() {
-        " j/k choisir et previsualiser  Entree restaurer  Esc ou Espace+e fermer"
-    } else if app.mode() == AppMode::Normal {
+        " j/k up/down  Enter load  Esc or Espace+e close"
+    } else if app.mode() == AppMode::SelectPanel {
         if app.focused_panel() == Panel::Headers {
             " h/l key-value  j/k naviguer  i/Entree editer  [x] inclus [ ] nouveau [!] invalide"
         } else {
-            " hjkl naviguer  i/Entree editer  Tab suivant  Ctrl+S envoyer  Espace+e historique  q quitter"
+            " hjkl navigate  Enter select  Tab next  Ctrl+S send  Espace+e history  q quit"
         }
     } else {
         match app.focused_panel() {
-            Panel::Method => " j/k ou Haut/Bas choisir  Entree confirmer  Tab suivant  Esc normal",
-            Panel::Headers => {
-                " Fleches curseur/champ/ligne  Tab/Entree suivant  Shift+Tab precedent  Ctrl+S envoyer  Esc normal"
-            }
-            Panel::Body => {
-                " Fleches curseur  Entree nouvelle ligne  Home/End  Tab suivant  Ctrl+S envoyer  Esc normal"
-            }
-            Panel::Url => {
-                " Gauche/Droite curseur  Home/End  Entree confirmer  Tab suivant  Ctrl+S envoyer  Esc normal"
-            }
+            Panel::Method => " j/k up/down  Entree select  Tab next  Esc exit",
+            Panel::Headers => "",
+            Panel::Body => "vim  Esc exit",
+            Panel::Url => "vim  Esc exit",
             Panel::Response => " Esc normal",
         }
     };
@@ -379,11 +370,13 @@ fn render_footer(frame: &mut Frame, app: &App, area: Rect) {
         footer[1],
     );
     frame.render_widget(
-        Paragraph::new(" ezcurl ").style(
-            Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD),
-        ),
+        Paragraph::new(" ezcurl ")
+            .alignment(Alignment::Right)
+            .style(
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
         footer[2],
     );
 }
@@ -446,18 +439,7 @@ fn show_cursor(frame: &mut Frame, app: &App, areas: &RequestAreas) {
 
     let position = match app.focused_panel() {
         Panel::Url => (areas.url.x + 1 + cursor_x, areas.url.y + 1 + cursor_y),
-        Panel::Headers => {
-            let headers = app.request().header_editor();
-            let area = match headers.part() {
-                HeaderPart::Key => areas.headers[0],
-                HeaderPart::Value => areas.headers[1],
-            };
-            let indicator_width = u16::from(headers.part() == HeaderPart::Key) * 4;
-            (
-                area.x + indicator_width + cursor_x,
-                area.y + 1 + headers.selected() as u16,
-            )
-        }
+        Panel::Headers => return,
         Panel::Body => (areas.body.x + 1 + cursor_x, areas.body.y + 1 + cursor_y),
         Panel::Method | Panel::Response => return,
     };

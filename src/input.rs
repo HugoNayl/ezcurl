@@ -16,8 +16,62 @@ pub fn map_key(key: KeyEvent, mode: AppMode, panel: Panel, leader_pending: bool)
         return Some(Action::SendRequest);
     }
 
-    if mode == AppMode::Insert {
-        return match key.code {
+    match mode {
+        AppMode::SelectPanel => match key.code {
+            KeyCode::Enter => Some(Action::EnterPanel),
+            KeyCode::Char('h') => Some(Action::Move(Direction::Left)),
+            KeyCode::Char('j') => Some(Action::Move(Direction::Down)),
+            KeyCode::Char('k') => Some(Action::Move(Direction::Up)),
+            KeyCode::Char('l') => Some(Action::Move(Direction::Right)),
+            KeyCode::Left => Some(Action::Move(Direction::Left)),
+            KeyCode::Right => Some(Action::Move(Direction::Right)),
+            KeyCode::Up => Some(Action::Move(Direction::Up)),
+            KeyCode::Down => Some(Action::Move(Direction::Down)),
+            KeyCode::Char('q') => Some(Action::Quit),
+            KeyCode::Char(' ') => Some(Action::Leader),
+            KeyCode::Tab => Some(Action::NextPanel),
+            _ => None,
+        },
+        AppMode::Normal => match key.code {
+            KeyCode::Char('q') => Some(Action::Quit),
+            KeyCode::Esc => Some(Action::ExitPanel),
+            KeyCode::Char('h') | KeyCode::Left => {
+                if panel == Panel::Headers {
+                    return Some(Action::TableHMove(Direction::Left))
+                }
+                Some(Action::MoveCursor(Direction::Left))
+            },
+            KeyCode::Char('j') | KeyCode::Down => {
+                if panel == Panel::Headers {
+                    return Some(Action::TableHMove(Direction::Down))
+                }
+                Some(Action::MoveCursor(Direction::Down))
+            },
+            KeyCode::Char('k') | KeyCode::Up => {
+                if panel == Panel::Headers {
+                    return Some(Action::TableHMove(Direction::Up))
+                }
+                Some(Action::MoveCursor(Direction::Up))
+            }
+            KeyCode::Char('l') | KeyCode::Right => {
+                if panel == Panel::Headers {
+                    return Some(Action::TableHMove(Direction::Right))
+                }
+                Some(Action::MoveCursor(Direction::Right))
+            }
+            KeyCode::Char('0') => Some(Action::MoveCursorToStart),
+            KeyCode::Char('$') => Some(Action::MoveCursorToEnd),
+            KeyCode::Char(' ') => Some(Action::Leader),
+            KeyCode::Char('i') => Some(Action::EnterInsert),
+            KeyCode::Enter => {
+                if panel == Panel::Method {
+                    return Some(Action::ExitPanel)
+                }
+                None
+            },
+            _ => None,
+        },
+        AppMode::Insert => match key.code {
             KeyCode::Esc => Some(Action::ExitInsert),
             KeyCode::Left => Some(Action::MoveCursor(Direction::Left)),
             KeyCode::Right => Some(Action::MoveCursor(Direction::Right)),
@@ -26,31 +80,11 @@ pub fn map_key(key: KeyEvent, mode: AppMode, panel: Panel, leader_pending: bool)
             KeyCode::Home => Some(Action::MoveCursorToStart),
             KeyCode::End => Some(Action::MoveCursorToEnd),
             KeyCode::Tab => Some(Action::NextField),
-            KeyCode::BackTab => Some(Action::PreviousField),
             KeyCode::Enter => Some(Action::InsertNewline),
             KeyCode::Backspace => Some(Action::Backspace),
             KeyCode::Delete => Some(Action::Delete),
-            KeyCode::Char('j') if panel == Panel::Method => {
-                Some(Action::MoveCursor(Direction::Down))
-            }
-            KeyCode::Char('k') if panel == Panel::Method => Some(Action::MoveCursor(Direction::Up)),
-            KeyCode::Char(c) => Some(Action::InsertChar(c)),
             _ => None,
-        };
-    }
-
-    match key.code {
-        KeyCode::Esc => Some(Action::Close),
-        KeyCode::Enter => Some(Action::Activate),
-        KeyCode::Char('h') => Some(Action::Move(Direction::Left)),
-        KeyCode::Char('j') => Some(Action::Move(Direction::Down)),
-        KeyCode::Char('k') => Some(Action::Move(Direction::Up)),
-        KeyCode::Char('l') => Some(Action::Move(Direction::Right)),
-        KeyCode::Char('q') => Some(Action::Quit),
-        KeyCode::Char(' ') => Some(Action::Leader),
-        KeyCode::Char('i') => Some(Action::EnterInsert),
-        KeyCode::Tab => Some(Action::NextPanel),
-        _ => None,
+        },
     }
 }
 

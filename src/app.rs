@@ -6,11 +6,13 @@ use crate::{
     request::{HeaderPart, HttpRequest, RequestField},
     response::HttpResponse,
 };
+use ratatui::widgets::TableState;
 
 const HISTORY_LIMIT: usize = 50;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AppMode {
+    SelectPanel,
     Normal,
     Insert,
 }
@@ -24,6 +26,18 @@ pub enum Panel {
     Response,
 }
 
+impl Panel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Panel::Method => "METHOD",
+            Panel::Url => "URL",
+            Panel::Headers => "HEADERS",
+            Panel::Body => "BODY",
+            Panel::Response => "RESPONSE",
+        }
+    }
+}
+
 pub struct App {
     mode: AppMode,
     focused_panel: Panel,
@@ -33,6 +47,8 @@ pub struct App {
     response: Option<HttpResponse>,
     response_error: Option<String>,
     client: HttpClient,
+
+    header_table_state: TableState,
 
     history: Vec<HistoryEntry>,
     history_store: HistoryStore,
@@ -56,7 +72,8 @@ impl App {
             response: None,
             response_error: None,
             client,
-            mode: AppMode::Normal,
+            header_table_state: TableState::default(),
+            mode: AppMode::SelectPanel,
             focused_panel: Panel::Url,
             response_origin: Panel::Url,
             history,
@@ -127,6 +144,10 @@ impl App {
         self.should_quit
     }
 
+    pub fn header_table_state_mut(&mut self) -> &mut TableState {
+        &mut self.header_table_state
+    }
+
     pub fn mode(&self) -> AppMode {
         self.mode
     }
@@ -140,12 +161,15 @@ impl App {
         match action {
             Action::Move(direction) => self.move_focus(direction),
             Action::MoveCursor(direction) => self.edit(Edit::Move(direction)),
+            Action::TableHMove(direction) => self.move_header_table(direction),
             Action::MoveCursorToStart => self.edit(Edit::Home),
             Action::MoveCursorToEnd => self.edit(Edit::End),
             Action::NextField => self.next_field(),
             Action::PreviousField => self.previous_field(),
             Action::SendRequest => self.send_request().await,
             Action::NextPanel => self.next_panel(),
+            Action::EnterPanel => self.enter_panel(),
+            Action::ExitPanel => self.exit_panel(),
             Action::ExitInsert => self.mode = AppMode::Normal,
             Action::EnterInsert | Action::Activate => self.enter_insert_mode(),
             Action::ToggleHistory => self.toggle_history(),
@@ -160,6 +184,15 @@ impl App {
         }
     }
 
+    fn move_header_table(&mut self, direction: Direction) {
+        match direction {
+            Direction::Up => self.header_table_state.select_previous(),
+            Direction::Down => self.header_table_state.select_next(),
+            Direction::Left => self.header_table_state.select_previous_column(),
+            Direction::Right => self.header_table_state.select_next_column(),
+        }
+    }
+
     pub fn focused_editor(&self) -> Option<&TextEditor> {
         match self.focused_panel {
             Panel::Headers => Some(self.request.header_editor().active_editor()),
@@ -168,6 +201,20 @@ impl App {
                 .request_field()
                 .map(|field| self.request.editor(field)),
         }
+    }
+
+    fn enter_panel(&mut self) {
+        if self.focused_panel != Panel::Response {
+            self.mode = AppMode::Normal;
+        }
+        if self.focused_panel == Panel::Headers {
+            self.header_table_state.select_first();
+            self.header_table_state.select_first_column();
+        }
+    }
+
+    fn exit_panel(&mut self) {
+        self.mode = AppMode::SelectPanel;
     }
 
     fn enter_insert_mode(&mut self) {
